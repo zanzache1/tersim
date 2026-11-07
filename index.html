@@ -18,7 +18,7 @@
     }
     .blackboard {
       position: relative; isolation: isolate;
-      width: min(900px, 100%); margin-bottom: 36px; padding: 22px 24px;
+      width: min(1040px, 100%); margin-bottom: 36px; padding: 22px 24px;
       display: flex; align-items: center; justify-content: space-between; gap: 20px;
       color: #fffde9; text-align: center; border: 13px solid #704723; border-radius: 10px;
       background-color: #15251e;
@@ -62,7 +62,7 @@
     .title-area { flex: 1; min-width: 0; font-family: 'MohammadHead', 'Katibeh', 'Aref Ruqaa Ink', 'Amiri', serif; }
     .title-area h1 {
       margin: 0; color: #ffffff; font-family: 'MohammadHead', 'Katibeh', 'Amiri', serif;
-      font-size: clamp(32px, 6vw, 52px); font-weight: 400;
+      font-size: clamp(22px, 4.2vw, 41.6px); font-weight: 400; white-space: nowrap;
       letter-spacing: 0; line-height: 1.6;
       text-shadow: 0 0 3px #fff, 0 0 9px #fff, 0 0 18px #ffffffcc, 0 0 32px #ffffff80;
       animation: glow 3.2s ease-in-out infinite;
@@ -106,6 +106,7 @@
       .blackboard { padding: 16px 10px; gap: 8px; border-width: 9px; }
       .badge { --d: 64px; margin: 0 2px; }
       .row { grid-template-columns: 1fr; }
+      .title-area h1 { white-space: normal; font-size: 24px; line-height: 1.5; }
     }
   </style>
 </head>
@@ -322,5 +323,19 @@
     });
   </script>
 
+
+  <script>
+    /* يُبقي العنوان الرئيسي في سطر واحد بتصغير الخط عند الحاجة */
+    function fitTitle() {
+      const h = document.querySelector(".title-area h1");
+      h.style.fontSize = "";
+      if (getComputedStyle(h).whiteSpace !== "nowrap") return;
+      let size = parseFloat(getComputedStyle(h).fontSize);
+      while (h.scrollWidth > h.clientWidth && size > 14) { size -= 0.5; h.style.fontSize = size + "px"; }
+    }
+    window.addEventListener("load", fitTitle);
+    window.addEventListener("resize", fitTitle);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitle);
+  </script>
 </body>
 </html>
