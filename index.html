@@ -59,6 +59,7 @@
     @font-face { font-family: 'MohammadHead'; src: local('Mohammad Head'), local('MohammadHead'), url('MohammadHead.woff2') format('woff2'), url('MohammadHead.ttf') format('truetype'); font-display: swap; }
     @font-face { font-family: 'AThuluth'; src: local('A Thuluth'), local('AThuluth'), url('AThuluth.woff2') format('woff2'), url('AThuluth.ttf') format('truetype'); font-display: swap; }
     @font-face { font-family: 'BaradaReqa'; src: local('Barada Reqa'), local('BaradaReqa'), local('Barada Reqa Regular'), url('BaradaReqa.woff2') format('woff2'), url('BaradaReqa.ttf') format('truetype'); font-display: swap; }
+    @font-face { font-family: 'MohammadBoldArt1'; src: local('Mohammad Bold Art 1'), local('MohammadBoldArt1'), local('Mohammad Bold Art'), url('MohammadBoldArt1.woff2') format('woff2'), url('MohammadBoldArt1.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
     .title-area { flex: 1; min-width: 0; font-family: 'MohammadHead', 'Katibeh', 'Aref Ruqaa Ink', 'Amiri', serif; }
     .title-area h1 {
       margin: 0; color: #ffffff; font-family: 'MohammadHead', 'Katibeh', 'Amiri', serif;
@@ -102,16 +103,16 @@
     @keyframes success-pop { from { transform: scale(.75); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
     /* ===== جدول البيانات المحجوزة ===== */
-    .data-card { width: min(1040px, 100%); margin-top: 28px; padding: 25px; background: #fff; border-radius: 7px; box-shadow: 0 4px 10px #0003; }
+    .data-card { width: min(1200px, 100%); margin-top: 28px; padding: 25px; background: #fff; border-radius: 7px; box-shadow: 0 4px 10px #0003; }
     .data-card .section-header { margin-top: 0; }
     .data-tools { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
     .data-tools input { flex: 1; }
     .data-tools button { width: auto; margin: 0; padding: 8px 20px; font-size: 20px; white-space: nowrap; }
     .data-meta { margin: 10px 0 6px; color: #555; font-size: 14px; min-height: 1.4em; }
     .table-wrap { overflow-x: auto; border: 1px solid #d5dbd7; border-radius: 4px; max-height: 480px; overflow-y: auto; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 900px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 900px; }
     .data-table th { position: sticky; top: 0; padding: 9px 6px; background: #1b5e36; color: #fff; font-weight: bold; text-align: center; line-height: 1.5; }
-    .data-table td { padding: 8px 6px; border-top: 1px solid #e3e8e5; text-align: center; vertical-align: top; }
+    .data-table td { font-family: 'MohammadBoldArt1', 'MohammadHead', Tahoma, Arial, sans-serif; font-size: 20px; font-weight: bold; color: #6b3a14; line-height: 1.6; padding: 9px 6px; border-top: 1px solid #e3e8e5; text-align: center; vertical-align: top; }
     .data-table tbody tr:nth-child(even) { background: #f3f8f5; }
     .data-table tbody tr:hover { background: #fde8ec; }
     .footer { width: min(850px, 100%); margin-top: 24px; color: #ffeb3b; text-align: center; font-family: 'BaradaReqa', 'Aref Ruqaa Ink', 'Katibeh', 'Amiri', serif; font-size: clamp(16px, 2.88vw, 24px); line-height: 1.7; text-shadow: none; }
@@ -298,8 +299,8 @@
     </section>
   </main>
 
-  <section class="data-card" id="dataCard" aria-label="حجوزاتي">
-    <div class="section-header">حجوزاتي</div>
+  <section class="data-card" id="dataCard" aria-label="البيانات المرسلة" hidden>
+    <div class="section-header">البيانات المرسلة</div>
     <div class="data-tools">
       <input id="tableSearch" type="search" placeholder="ابحث في حجوزاتك..." aria-label="بحث في الجدول">
       <button id="refreshButton" type="button">تحديث</button>
@@ -356,7 +357,7 @@
         form.hidden = true;
         successPanel.hidden = false;
         successPanel.scrollIntoView({ behavior: "smooth", block: "center" });
-        setTimeout(loadData, 2500);
+        showBookings();
       } catch (error) {
         console.error("تعذر إرسال البيانات:", error);
         status.textContent = "حدث خطأ أثناء الإرسال. تحقق من الاتصال وحاول مرة أخرى.";
@@ -428,7 +429,13 @@
 
     refreshBtn.addEventListener("click", loadData);
     searchInput.addEventListener("input", renderTable);
-    loadData();
+
+    /* يظهر الجدول فقط بعد نجاح إرسال حجز في هذه الزيارة */
+    function showBookings() {
+      document.getElementById("dataCard").hidden = false;
+      dataMeta.textContent = "جارٍ تحميل حجوزاتك...";
+      setTimeout(loadData, 2500);
+    }
   </script>
 </body>
 </html>
