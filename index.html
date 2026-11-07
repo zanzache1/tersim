@@ -100,6 +100,20 @@
     .send-again { width: auto; min-width: 220px; margin: 8px auto 0; padding: 11px 22px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; font-size: 16px; }
     .send-again svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     @keyframes success-pop { from { transform: scale(.75); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* ===== جدول البيانات المحجوزة ===== */
+    .data-card { width: min(1040px, 100%); margin-top: 28px; padding: 25px; background: #fff; border-radius: 7px; box-shadow: 0 4px 10px #0003; }
+    .data-card .section-header { margin-top: 0; }
+    .data-tools { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+    .data-tools input { flex: 1; }
+    .data-tools button { width: auto; margin: 0; padding: 8px 20px; font-size: 20px; white-space: nowrap; }
+    .data-meta { margin: 10px 0 6px; color: #555; font-size: 14px; min-height: 1.4em; }
+    .table-wrap { overflow-x: auto; border: 1px solid #d5dbd7; border-radius: 4px; max-height: 480px; overflow-y: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 900px; }
+    .data-table th { position: sticky; top: 0; padding: 9px 6px; background: #1b5e36; color: #fff; font-weight: bold; text-align: center; line-height: 1.5; }
+    .data-table td { padding: 8px 6px; border-top: 1px solid #e3e8e5; text-align: center; vertical-align: top; }
+    .data-table tbody tr:nth-child(even) { background: #f3f8f5; }
+    .data-table tbody tr:hover { background: #fde8ec; }
     .footer { width: min(850px, 100%); margin-top: 24px; color: #ffeb3b; text-align: center; font-family: 'BaradaReqa', 'Aref Ruqaa Ink', 'Katibeh', 'Amiri', serif; font-size: clamp(16px, 2.88vw, 24px); line-height: 1.7; text-shadow: none; }
     @media (max-width: 640px) {
       body { padding: 14px 10px; }
@@ -284,10 +298,35 @@
     </section>
   </main>
 
+  <section class="data-card" id="dataCard" aria-label="حجوزاتي">
+    <div class="section-header">حجوزاتي</div>
+    <div class="data-tools">
+      <input id="tableSearch" type="search" placeholder="ابحث في حجوزاتك..." aria-label="بحث في الجدول">
+      <button id="refreshButton" type="button">تحديث</button>
+    </div>
+    <p id="dataMeta" class="data-meta" role="status" aria-live="polite"></p>
+    <div class="table-wrap"><table class="data-table" id="dataTable"><thead></thead><tbody></tbody></table></div>
+  </section>
+
   <footer class="footer">تصميم الأستاذ والمفتش: بلعدل محمد &nbsp;|&nbsp; كل الحقوق محفوظة © 2027</footer>
 
   <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwrm6CTMR7t1JT7cS5XB71jKyMudzKzH_P_anT23w7j1MQWnBIsdVOOJE7I_KL-pQbx/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPgsPIkGIrua1FKX67GlK5orSiuwGnP2YvlDvnCvm2YmN8RnA2FyYpX0ijqTewzBBi/exec";
+    /* رمز عشوائي خاص بهذا المتصفح: به يُعرَف الحاجز، فلا يرى إلا حجوزاته */
+    let memoryToken = null;
+    function getToken() {
+      try {
+        let t = localStorage.getItem("dz_booking_token");
+        if (!t) {
+          t = (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)));
+          localStorage.setItem("dz_booking_token", t);
+        }
+        return t;
+      } catch (e) {
+        if (!memoryToken) memoryToken = Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        return memoryToken;
+      }
+    }
     const form = document.getElementById("inspectorForm");
     const button = document.getElementById("submitButton");
     const status = document.getElementById("formStatus");
@@ -306,6 +345,7 @@
       button.disabled = true;
       status.textContent = "جارٍ إرسال البيانات...";
       const formData = Object.fromEntries(new FormData(form).entries());
+      formData.token = getToken();
       try {
         await fetch(WEB_APP_URL, {
           method: "POST",
@@ -316,6 +356,7 @@
         form.hidden = true;
         successPanel.hidden = false;
         successPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(loadData, 2500);
       } catch (error) {
         console.error("تعذر إرسال البيانات:", error);
         status.textContent = "حدث خطأ أثناء الإرسال. تحقق من الاتصال وحاول مرة أخرى.";
@@ -338,6 +379,56 @@
     window.addEventListener("load", fitTitle);
     window.addEventListener("resize", fitTitle);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitle);
+  </script>
+
+  <script>
+    /* ===== عرض البيانات المحجوزة (يتطلب دالة doGet في Google Apps Script) ===== */
+    let tableData = { headers: [], rows: [] };
+    const tHead = document.querySelector("#dataTable thead");
+    const tBody = document.querySelector("#dataTable tbody");
+    const dataMeta = document.getElementById("dataMeta");
+    const searchInput = document.getElementById("tableSearch");
+    const refreshBtn = document.getElementById("refreshButton");
+
+    function renderTable() {
+      const q = searchInput.value.trim().toLowerCase();
+      tHead.replaceChildren(); tBody.replaceChildren();
+      const hr = document.createElement("tr");
+      ["#"].concat(tableData.headers).forEach(h => { const th = document.createElement("th"); th.textContent = h; hr.appendChild(th); });
+      tHead.appendChild(hr);
+      let shown = 0;
+      tableData.rows.forEach(row => {
+        if (q && !row.join(" ").toLowerCase().includes(q)) return;
+        shown++;
+        const tr = document.createElement("tr");
+        const n = document.createElement("td"); n.textContent = shown; tr.appendChild(n);
+        row.forEach(c => { const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
+        tBody.appendChild(tr);
+      });
+      dataMeta.textContent = tableData.rows.length ? ("عدد حجوزاتك: " + shown + (q ? " (من أصل " + tableData.rows.length + ")" : "")) : "لا توجد حجوزات مسجّلة من هذا الجهاز بعد.";
+    }
+
+    function loadData() {
+      dataMeta.textContent = "جارٍ تحميل البيانات...";
+      refreshBtn.disabled = true;
+      const cb = "dzCb" + Date.now();
+      const script = document.createElement("script");
+      let done = false;
+      const finish = () => { done = true; delete window[cb]; script.remove(); refreshBtn.disabled = false; };
+      window[cb] = (d) => {
+        finish();
+        if (d && d.ok) { tableData = { headers: d.headers || [], rows: d.rows || [] }; renderTable(); }
+        else dataMeta.textContent = "تعذر قراءة البيانات: " + ((d && d.error) || "استجابة غير صالحة");
+      };
+      script.onerror = () => { if (!done) { finish(); dataMeta.textContent = "تعذر تحميل البيانات. تأكد من إضافة دالة doGet ونشر نسخة جديدة من التطبيق."; } };
+      script.src = WEB_APP_URL + "?callback=" + cb + "&token=" + encodeURIComponent(getToken()) + "&_=" + Date.now();
+      document.body.appendChild(script);
+      setTimeout(() => { if (!done) { finish(); dataMeta.textContent = "انتهت مهلة التحميل. حاول مرة أخرى."; } }, 20000);
+    }
+
+    refreshBtn.addEventListener("click", loadData);
+    searchInput.addEventListener("input", renderTable);
+    loadData();
   </script>
 </body>
 </html>
